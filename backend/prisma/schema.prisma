@@ -7,7 +7,84 @@ datasource db {
   provider = "postgresql"
 }
 
-model User{
+enum TipoTransacao{
+  RECEITA
+  DESPESA
+  TRANSFERENCIA
+}
+
+enum Frequencia{
+  UNICA 
+  PARCELADA
+  MENSAL
+  SEMESTRAL
+  ANUAL
+}
+
+enum TipoConta{
+  CORRENTE
+  POUPANCA
+  CARTAO_DEBITO
+  CARTAO_CREDITO
+  CARTEIRA
+}
+
+model Usuario{
   id String @id @default(uuid())
-  name String
+  nome String
+  email String @unique
+  senha String
+  criadoEm DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  transacoes Transacao[]
+  categorias Categoria[]
+
+  @@map("usuarios")
+
+}
+
+model Transacao{
+  id String @id @default(uuid())
+  descricao String
+  valor Decimal @db.Decimal(12,2)
+  conta TipoConta
+  data DateTime
+  tipo TipoTransacao
+  pago Boolean @default(false)
+  observacao String?
+  categoriaId String
+  categoria Categoria @relation(fields: [categoriaId], references: [id])
+  frequencia Frequencia @default(UNICA)
+  totalParcelas Int?
+  parcelaAtual Int?
+
+// Quando for PARCELADA, todas as parcelas compartilham o mesmo grupoParcelaId
+// Isso permite buscar "todas as parcelas desse parcelamento"
+  grupoParcelaId String?
+
+  usuarioId   String
+  usuario     Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  criadoEm    DateTime      @default(now())
+  atualizadoEm DateTime     @updatedAt
+  @@index([usuarioId])
+  @@index([data])
+  @@index([tipo])
+  @@index([grupoParcelaId])
+  @@map("transacoes")
+
+}
+
+model Categoria{
+  id String @id @default(uuid())
+  nome String
+  icone String?
+  cor String?
+  tipo TipoTransacao
+
+  usuarioId String?
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  transacoes Transacao[]
+
+  @@map("categorias")
 }
